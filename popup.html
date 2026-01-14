@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Poznote URL Saver</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 10px; width: 350px; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 5px; margin-top: 5px; box-sizing: border-box; }
+    button { margin-top: 15px; width: 100%; padding: 10px; background: #4285f4; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    button:hover { background: #3367d6; }
+    button.small { width: auto; padding: 6px 12px; font-size: 0.9em; margin-top: 10px; display: inline-block; }
+    #status { margin-top: 12px; font-weight: bold; min-height: 20px; }
+    .section { margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd; }
+    h2 { margin: 0 0 10px 0; font-size: 1.2em; }
+    h1 { text-align: center; }
+    .collapsible { transition: max-height 0.4s ease, padding 0.3s ease; overflow: hidden; }
+    .collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; margin-top: 0; border-top: none; }
+    .expanded { max-height: 500px; }
+    .current-info { font-weight: bold; color: #1a73e8; margin: 10px 0px 0px 0px; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Poznote URL Saver</h1>
+  </div>
+
+  <div id="configSection" class="section collapsible expanded">
+    <h2>Configuration Poznote</h2>
+    <label>URL de l'app (ex: http://192.168.1.10/)</label>
+    <input type="text" id="appUrl" placeholder="http://ton-serveur/">
+
+    <label>Username</label>
+    <input type="text" id="username">
+
+    <label>Password</label>
+    <input type="password" id="password">
+
+    <button id="saveConfig">Sauvegarder la configuration</button>
+  </div>
+
+  <button id="toggleConfig" class="small" style="display:none;">Modifier la configuration</button>
+
+
+  <div id="workspaceSection" class="section collapsible expanded">
+    <h2>Sélection du Workspace</h2>
+    <button id="loadWorkspaces">Charger les workspaces</button>
+
+    <select id="workspaceSelect">
+      <option value="">-- Choisir un workspace --</option>
+    </select>
+  </div>
+  <div id="currentWorkspace" class="current-info" style="display:none;"></div>
+  <button id="toggleWorkspace" class="small" style="display:none;">Changer de workspace</button>
+
+
+
+  <div class="section">
+    <h2>Sauvegarder l'URL courante</h2>
+    <button id="loadFolders">Charger les dossiers du workspace</button>
+
+    <select id="folderSelect">
+      <option value="">-- Racine (aucun dossier) --</option>
+    </select>
+
+    <button id="saveNote">Enregistrer l'URL dans la note</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
