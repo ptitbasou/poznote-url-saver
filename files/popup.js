@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Charger les dossiers
+  // Charger les dossiers – UTILISATION DIRECTE DU "path"
   document.getElementById('loadFolders').addEventListener('click', async () => {
     if (!selectedWorkspace) {
       updateStatus('⚠️ Choisis d\'abord un workspace', 'orange');
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (response.error) throw new Error(response.error);
 
-      const folders = response.folders || [];
+      const folders = response.folders || []; // "folders" est un tableau plat avec "path" et "id"
 
       const folderSelect = document.getElementById('folderSelect');
       folderSelect.innerHTML = '<option value="">-- Racine (aucun dossier) --</option>';
@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const folderMap = new Map();
       let count = 0;
 
+      // Tri alphabétique par path
       folders.sort((a, b) => (a.path || '').localeCompare(b.path || ''));
 
       folders.forEach(folder => {
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Créer la note avec capture d'écran (base64)
+  // Créer la note enrichie en HTML
   document.getElementById('saveNote').addEventListener('click', async () => {
     if (!selectedWorkspace) {
       updateStatus('⚠️ Aucun workspace sélectionné', 'red');
@@ -225,47 +226,69 @@ document.addEventListener('DOMContentLoaded', () => {
     let pageTitle = tab.title || 'Page sans titre';
     let pageUrl = tab.url;
 
-    updateStatus('Capture d\'écran en cours...', 'blue');
+    // Variables pour métadonnées
+    let description = '';
+    let keywords = '';
 
-    let screenshotDataUrl = null;
+    // Récupération des métadonnées via injection
     try {
-      screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, {
-        format: 'png'
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const getMeta = (name, property = false) => {
+            const selector = property 
+              ? `meta[property="${property}"]` 
+              : `meta[name="${name}"]`;
+            const el = document.querySelector(selector);
+            return el ? el.content.trim() : '';
+          };
+
+          return {
+            description: getMeta('description') || getMeta('og:description', true) || '',
+            keywords: getMeta('keywords') || ''
+          };
+        }
       });
+
+      if (results && results[0] && results[0].result) {
+        description = results[0].result.description;
+        keywords = results[0].result.keywords;
+      }
     } catch (err) {
-      console.error('Erreur capture :', err);
-      updateStatus('⚠️ Impossible de capturer l\'écran (page chrome:// ou extension ?)', 'orange');
+      console.warn('Métadonnées non accessibles (page système ou extension)', err);
+      // On continue sans métadonnées (normal sur chrome://, about:, etc.)
     }
 
-    // Contenu enrichi
-    let noteContent = `
-      <p><strong>🔗 URL :</strong> <a href="${pageUrl}" target="_blank">${pageUrl}</a></p>
-      <p><strong>Titre :</strong> ${pageTitle}</p>
-    `;
+    // Contenu HTML enrichi
+    let noteContent = `<p><strong>🔗 URL :</strong> <a href="${pageUrl}" target="_blank">${pageUrl}</a></p>`;
 
-    if (screenshotDataUrl) {
-      noteContent += `
-        <p><strong>Capture d'écran de la page :</strong></p>
-        <img src="${screenshotDataUrl}" alt="Capture d'écran de ${pageTitle}" style="max-width:100%; height:auto; border:1px solid #ddd; border-radius:4px;">
-      `;
-    } else {
-      noteContent += `<p><em>Pas de capture d'écran disponible</em></p>`;
+    if (description) {
+      noteContent += `<p><strong>📝 Description :</strong><br>${description.replace(/\n/g, '<br>')}</p>`;
     }
+
+    if (keywords) {
+      noteContent += `<p><strong>🔖 Mots-clés :</strong> ${keywords}</p>`;
+    }
+
+    if (!description && !keywords) {
+      noteContent += `<p><em>Aucune métadonnée trouvée sur cette page.</em></p>`;
+    }
+
 
     const noteData = {
-      heading: `🔗 ${pageTitle}`,
+      heading: pageTitle,
       content: noteContent,
       tags: '',
       folder_id: folderId,
       workspace: selectedWorkspace
     };
 
-    updateStatus('Création de la note avec capture...', 'orange');
+    updateStatus('Création de la note enrichie...', 'orange');
 
     try {
       const response = await chrome.runtime.sendMessage({ type: 'createNote', config, noteData });
       if (response.error) throw new Error(response.error);
-      updateStatus('💾 Note + capture créée avec succès !', 'green');
+      updateStatus('💾 Note enrichie créée avec succès !', 'green');
     } catch (err) {
       updateStatus('❌ ' + err.message, 'red');
     }
